@@ -1,0 +1,55 @@
+%%%% I have performed actual implementation of some functions, such as compute_phonons_in_supercell and find_reciprocal_lattice_vectors, may depend on the specific system being studied and may require additional input parameters. Additionally, the implementation of the summation over Cartesian directions and atom indices may need to be adapted to the specific system and choice of coordinates.
+
+
+
+
+% Define the supercell lattice vectors
+a1 = [ax ay az];
+a2 = [bx by bz];
+a3 = [cx cy cz];
+
+% Define the reciprocal lattice vectors of the supercell
+b1 = 2*pi*cross(a2,a3)/dot(a1,cross(a2,a3));
+b2 = 2*pi*cross(a3,a1)/dot(a2,cross(a3,a1));
+b3 = 2*pi*cross(a1,a2)/dot(a3,cross(a1,a2));
+
+% Define the wavevectors of interest in the Brillouin zone of the unit cell
+qpoints = [...]; % a list of wavevectors, each of the form [qx qy qz]
+
+% Compute the phonon eigenvectors in the supercell
+[omega, e] = compute_phonons_in_supercell(...); % function to compute phonons in supercell, returns frequencies omega and eigenvectors e
+
+% Compute the spectral function for each wavevector in qpoints
+for q = qpoints
+    % Find the reciprocal lattice vectors G that satisfy Q = q + g - G, where Q is a phonon wavevector in the supercell Brillouin zone
+    Glist = find_reciprocal_lattice_vectors(...); % function to find G vectors, returns a list of G vectors that satisfy Q = q + g - G
+    
+    % Initialize the spectral weight for this wavevector
+    P = 0;
+    
+    % Compute the spectral weight for each phonon mode with wavevector Q in the supercell Brillouin zone
+    for mu = 1:num_phonon_modes
+        for j = 1:num_reciprocal_lattice_vectors
+            Q = q + g(j) - Glist; % calculate the phonon wavevector Q in the supercell Brillouin zone
+            
+            % Compute the projection of the phonon eigenvector onto the eigenvectors in the unit cell Brillouin zone
+            projection = 0;
+            for alpha = 1:3
+                for kappa = 1:num_atoms_in_unit_cell
+                    for nu = 1:num_phonon_modes_in_unit_cell
+                        projection = projection + conj(e(alpha,kappa,nu))*exp(1i*(q+g(j)).dot(tau(kappa)))*e(alpha,kappa,nu);
+                    end
+                end
+            end
+            
+            % Add the spectral weight for this phonon mode to the total spectral weight for this wavevector
+            P = P + abs(projection)^2/Ng*Omega/tildeOmega;
+        end
+    end
+    
+    % Add a delta function to the spectral function at the frequency of each phonon mode with wavevector Q in the supercell Brillouin zone
+    for mu = 1:num_phonon_modes
+        Q = q + g(j) - Glist; % calculate the phonon wavevector Q in the supercell Brillouin zone
+        A(q) = A(q) + P*delta(omega(mu) - omega_Q(mu));
+    end
+end
